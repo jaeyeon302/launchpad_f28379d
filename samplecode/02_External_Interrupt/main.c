@@ -1,7 +1,8 @@
-
 #include <F28x_Project.h>
 /**
  * main.c
+ * Sample code about the external interrupt
+ * @author Jaeyeon Park
  */
 
 interrupt void xint1_isr(){

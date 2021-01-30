@@ -2,6 +2,12 @@
 #include <F28x_Project.h>
 /**
  * main.c
+ * repetitive ADC using Self triggering
+ * 
+ * At the end of Analog-to-Digital Conversion,
+ * EOC0 generates ADCINT1 Signal that pulls the trigger of SOC0 
+ * to start Analog-to-digital conversion again
+ * @author Jaeyeon Park
  */
 
 // To upload program on the flash,
@@ -64,7 +70,7 @@ int main(void)
     EDIS;
 
     EINT;
-    AdcaRegs.ADCSOCFRC1.bit.SOC0 = 1; // PULL THE TRIGGER
+    AdcaRegs.ADCSOCFRC1.bit.SOC0 = 1; // PULL THE TRIGGER for the initial start
 
 
     while(1){

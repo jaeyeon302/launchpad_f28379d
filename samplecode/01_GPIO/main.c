@@ -1,8 +1,8 @@
-
 #include <F28x_Project.h>
-
 /**
  * main.c
+ * Sample code about the basic Usage and configuration for GPIO
+ * @author Jaeyeon Park
  */
 int main(void)
 {

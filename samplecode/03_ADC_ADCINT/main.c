@@ -1,6 +1,10 @@
 
 #include <F28x_Project.h>
-
+/**
+ * main.c
+ * repetitive ADC using software ADC trigger, ADCINT1(ADC interrupt) and PIE ISR
+ * @author Jaeyeon Park
+ */
 
 interrupt void ADCAINT1_isr(){
    PieCtrlRegs.PIEACK.all = PIEACK_GROUP1;
@@ -10,9 +14,6 @@ interrupt void ADCAINT1_isr(){
    AdcaRegs.ADCSOCFRC1.bit.SOC0 = 1;
 }
 
-/**
- * main.c
- */
 int main(void)
 {
     InitSysCtrl();
