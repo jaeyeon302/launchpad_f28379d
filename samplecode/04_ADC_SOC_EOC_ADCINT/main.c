@@ -4,11 +4,17 @@
  * main.c
  */
 
+// To upload program on the flash,
+// remove comment mark to enable #define _FLASH
+// and change 'Linker Command File' in Project Properties/General
+// from 2837x_RAM_lnk_cpu1.cmd to 2837x_FLASH_lnk_cpu1.cmd
+#define _FLASH
+
+
+volatile long int count1 = 0;
 extern interrupt void ADCAINT1_isr(){
-    AdcaRegs.ADCINTFLGCLR.bit.ADCINT1 = 1;
-}
-extern interrupt void ADCAINT2_isr(){
-    AdcaRegs.ADCINTFLGCLR.bit.ADCINT2 = 1;
+    count1++;
+    PieCtrlRegs.PIEACK.all = PIEACK_GROUP1; // this line is needed to get the next ADCINT1 interrupt from EOC0
 }
 
 int main(void)
@@ -18,73 +24,52 @@ int main(void)
     #endif
     InitSysCtrl();
     InitGpio();
-    DINT;
+
     EALLOW;
-    GpioCtrlRegs.GPAGMUX2.bit.GPIO31 = 0;
-    GpioCtrlRegs.GPAMUX2.bit.GPIO31 = 0;
-    GpioCtrlRegs.GPADIR.bit.GPIO31 = 1;
-    GpioDataRegs.GPACLEAR.bit.GPIO31 = 1;
-
-
-    //enable Module Clock to ADC
+    // enable ADC module clock
+    CpuSysRegs.PCLKCR13.all = 0x00000000;
     CpuSysRegs.PCLKCR13.bit.ADC_A = 1;
-    CpuSysRegs.PCLKCR13.bit.ADC_B = 0;
-    CpuSysRegs.PCLKCR13.bit.ADC_C = 0;
-    CpuSysRegs.PCLKCR13.bit.ADC_D = 0;
-
-    //set Prescale for ADC Clock
-    AdcaRegs.ADCCTL2.bit.RESOLUTION = 0; // 0 : 12-bit resolution, 1: 16-bit resolution
-    AdcaRegs.ADCCTL2.bit.PRESCALE = 6; // ADC clock diver to /4
-    AdcaRegs.ADCCTL2.bit.SIGNALMODE = 0; // 0 : Single ended, 1: Differential
-
-    //power up
+    // Configure ADC
+    AdcaRegs.ADCCTL2.bit.RESOLUTION = 0;
+    AdcaRegs.ADCCTL2.bit.PRESCALE = 6;
+    AdcaRegs.ADCCTL2.bit.SIGNALMODE = 0; // SINGLE INPUT MODE
+    // power up
     AdcaRegs.ADCCTL1.bit.ADCPWDNZ = 1;
     DELAY_US(1E3);
-    // delay 1000us.
-    // The delay is needed after power up the adc module.
-    // refer to technical reference 1574p
-
-    AdcaRegs.ADCCTL1.bit.INTPULSEPOS = 1;   // set the timing when the EOC signal is generated. 0(end of acq windows), 1(end of conversion)
-    AdcaRegs.ADCSOC0CTL.bit.CHSEL = 2;      // ADCINA2 is selected
-    AdcaRegs.ADCSOC0CTL.bit.ACQPS = 63;     // SAMPLE window is acqps + 1sysclk cycles = 640ns
-    AdcaRegs.ADCSOC0CTL.bit.TRIGSEL = 0;    // No trigger selected from ADCTRIGn
-    AdcaRegs.ADCINTSOCSEL1.bit.SOC0 = 1;    // enable ADCINT1 as a trigger
-
-    AdcaRegs.ADCSOC15CTL.bit.CHSEL = 1;
-    AdcaRegs.ADCSOC15CTL.bit.ACQPS = 63;
-    AdcaRegs.ADCSOC15CTL.bit.TRIGSEL = 0;
-    AdcaRegs.ADCINTSOCSEL2.bit.SOC15 = 2; // enable ADCINT2 as a trigger
-
-    AdcaRegs.ADCINTSEL1N2.bit.INT1E = 1;
-    AdcaRegs.ADCINTSEL1N2.bit.INT2E = 1;
-
-    AdcaRegs.ADCINTSEL1N2.bit.INT1CONT = 0;
-    AdcaRegs.ADCINTSEL1N2.bit.INT2CONT = 0;
-
-    AdcaRegs.ADCINTSEL1N2.bit.INT1SEL = 0;
-    AdcaRegs.ADCINTSEL1N2.bit.INT2SEL = 15;
+    AdcaRegs.ADCCTL1.bit.INTPULSEPOS = 1;
+    // All Clear ADCINT in SOCn
+    AdcaRegs.ADCINTSOCSEL1.all = 0x0000;
+    AdcaRegs.ADCINTSOCSEL2.all = 0x0000;
+    // Configure EOC
+    AdcaRegs.ADCINTSEL1N2.bit.INT1E = 1;    // enable ADCINT1
+    AdcaRegs.ADCINTSEL1N2.bit.INT1CONT = 1; // enable continuous interrupt. If it is discontinuous, SOC0-EOC0 pair only works once
+    AdcaRegs.ADCINTSEL1N2.bit.INT1SEL = 0;  // setup EOC0 to pull the trigger(ADCINT1)
+    //Configure SOC
+    AdcaRegs.ADCSOC0CTL.bit.CHSEL = 2;  // use ADCINA2
+    AdcaRegs.ADCSOC0CTL.bit.ACQPS = 15;
+    AdcaRegs.ADCINTSOCSEL1.bit.SOC0 = 1; // ADCINT1 is the trigger for SOC0
     EDIS;
 
-
+    DINT;
     IER = 0x0000;
     IFR = 0x0000;
-    IER = M_INT1|M_INT10;
+    IER = M_INT1;
     InitPieCtrl();
     InitPieVectTable();
+
     EALLOW;
     PieVectTable.ADCA1_INT = ADCAINT1_isr; //connect interrupt service routine
-    PieVectTable.ADCA2_INT = ADCAINT2_isr;
-
     PieCtrlRegs.PIECTRL.bit.ENPIE = 1; //enable PIE
     PieCtrlRegs.PIEIER1.bit.INTx1 = 1; //enable ADCINTA1
-    PieCtrlRegs.PIEIER10.bit.INTx2 = 1; //enable ADCINTA2
     EDIS;
-    EINT;
 
-    AdcaRegs.ADCSOCFRC1.bit.SOC0 = 1;
+    EINT;
+    AdcaRegs.ADCSOCFRC1.bit.SOC0 = 1; // PULL THE TRIGGER
+
+
     while(1){
-        DELAY_US(1E6);
-        GpioDataRegs.GPATOGGLE.bit.GPIO31 = 1;
+        //DELAY_US(1E3);
+        //GpioDataRegs.GPATOGGLE.bit.GPIO31 = 1;
     }
 
 	return 0;
