@@ -31,7 +31,7 @@ int main(void)
     EDIS;
 
     while(1){
-        DELAY_US(1E5);
+        DELAY_US(1E3);
         EALLOW;
         GpioDataRegs.GPATOGGLE.bit.GPIO31 = 1;
         EDIS;

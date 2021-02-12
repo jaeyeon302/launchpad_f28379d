@@ -5,13 +5,14 @@
  * repetitive ADC using software ADC trigger, ADCINT1(ADC interrupt) and PIE ISR
  * @author Jaeyeon Park
  */
-
+volatile long int count1 = 0;
 interrupt void ADCAINT1_isr(){
-   PieCtrlRegs.PIEACK.all = PIEACK_GROUP1;
+    count1++;
 
    // Software Trigger for ADC
    AdcaRegs.ADCINTFLGCLR.bit.ADCINT1 = 1;
    AdcaRegs.ADCSOCFRC1.bit.SOC0 = 1;
+   PieCtrlRegs.PIEACK.all = PIEACK_GROUP1;
 }
 
 int main(void)
@@ -65,11 +66,9 @@ int main(void)
     PieCtrlRegs.PIEIER1.bit.INTx1 = 1; //enable ADCINTA1
     PieVectTable.ADCA1_INT = &ADCAINT1_isr; //connect interrupt service routine
     EINT;
-
-    DELAY_US(2E6);
     AdcaRegs.ADCSOCFRC1.bit.SOC0 = 1; // start ADC(software trigger)
     while(1){
-
+        DELAY_US(1E6);
 
     }
 

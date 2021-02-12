@@ -6,8 +6,8 @@
  */
 
 interrupt void xint1_isr(){
-    PieCtrlRegs.PIEACK.all = PIEACK_GROUP1;
     GpioDataRegs.GPATOGGLE.bit.GPIO31 = 1; //flip the led state
+    PieCtrlRegs.PIEACK.all = PIEACK_GROUP1; // clear PIEACK.1 == PIEACK switch closed
 }
 
 int main(void)

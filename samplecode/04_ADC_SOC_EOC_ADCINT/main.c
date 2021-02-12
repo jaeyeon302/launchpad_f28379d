@@ -14,7 +14,7 @@
 // remove comment mark to enable #define _FLASH
 // and change 'Linker Command File' in Project Properties/General
 // from 2837x_RAM_lnk_cpu1.cmd to 2837x_FLASH_lnk_cpu1.cmd
-#define _FLASH
+//#define _FLASH
 
 
 volatile long int count1 = 0;
@@ -74,7 +74,7 @@ int main(void)
 
 
     while(1){
-        //DELAY_US(1E3);
+        DELAY_US(1E6);
         //GpioDataRegs.GPATOGGLE.bit.GPIO31 = 1;
     }
 
