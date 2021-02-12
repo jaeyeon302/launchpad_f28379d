@@ -1,5 +1,5 @@
 #include <F28x_Project.h>
-
+#define _FLASH
 /**
  * main.c
  * Timer interrupt samplecode using CpuTimer0
