@@ -12,7 +12,7 @@
 ## 참고사항
 ### **1. Linker files**
 ```
-If your project has the FLASH linker selected
+If your project has the FLASH linker selected switch to RAM.
 ```
 문서에 보면 위와 같이 나와 있는데, 이는 아래와 같이 설정하라는 뜻이다.
 -  `Project Explorer` 탭에서 현재 업로드 하려는 Project를 마우스 오른쪽 버튼을 클릭하여 `Properties`로 들어간다. 
