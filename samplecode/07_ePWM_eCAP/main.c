@@ -6,15 +6,21 @@
 Uint32 duty[4];
 int test;
 interrupt void ecap1_isr(void){
-    duty[0] = ECap1Regs.CAP1;
-    duty[1] = ECap1Regs.CAP2;
-    duty[2] = ECap1Regs.CAP3;
-    duty[3] = ECap1Regs.CAP4;
-
     ECap1Regs.ECCLR.bit.INT = 1;
     ECap1Regs.ECCLR.bit.CEVT1 = 1;
     ECap1Regs.ECCTL2.bit.REARM = 1;
-
+    PieCtrlRegs.PIEACK.all |= PIEACK_GROUP4;
+}
+interrupt void ecap2_isr(void){
+    ECap2Regs.ECCLR.bit.INT = 1;
+    ECap2Regs.ECCLR.bit.CEVT1 = 1;
+    ECap2Regs.ECCTL2.bit.REARM = 1;
+    PieCtrlRegs.PIEACK.all |= PIEACK_GROUP4;
+}
+interrupt void ecap3_isr(void){
+    ECap3Regs.ECCLR.bit.INT = 1;
+    ECap3Regs.ECCLR.bit.CEVT1 = 1;
+    ECap3Regs.ECCTL2.bit.REARM = 1;
     PieCtrlRegs.PIEACK.all |= PIEACK_GROUP4;
 }
 
@@ -60,7 +66,7 @@ int main(void)
     EPwm1Regs.TBPHS.bit.TBPHS=0x0000; //phase is 0
     EPwm1Regs.TBCTR=0x0000; //clear counter
     //Set Compare values
-    EPwm1Regs.CMPA.bit.CMPA=100; //set compare A value
+    EPwm1Regs.CMPA.bit.CMPA=700; //set compare A value
     EPwm1Regs.CMPB.bit.CMPB=1950; //set compare B value
     //Setup counter mode
     EPwm1Regs.TBCTL.bit.CTRMODE=2; //Count up and down
@@ -95,17 +101,29 @@ int main(void)
     GpioCtrlRegs.GPBDIR.bit.GPIO60 = 0; // GPIO FOR INPUT
     GpioCtrlRegs.GPBQSEL2.bit.GPIO60 = 0x0; // Input Qualification type - Sync
 
+    GpioCtrlRegs.GPBGMUX2.bit.GPIO56 = 0; // use GPIO60 as gpio
+    GpioCtrlRegs.GPBMUX2.bit.GPIO56 = 0;
+    GpioCtrlRegs.GPBDIR.bit.GPIO56 = 0; // GPIO FOR INPUT
+    GpioCtrlRegs.GPBQSEL2.bit.GPIO56 = 0x0; // Input Qualification type - Sync
+    GpioCtrlRegs.GPBPUD.bit.GPIO56 = 0;
+
     InputXbarRegs.INPUT7SELECT = 60; // connect GPIO60 input to INPUT-X-BAR line no.7 -> eCAP1
+    InputXbarRegs.INPUT8SELECT = 60;
+    InputXbarRegs.INPUT9SELECT = 56;
     EDIS;
 
     // 2. Connect Interrupt
 
     EALLOW;
     PieVectTable.ECAP1_INT = ecap1_isr;
+    PieVectTable.ECAP2_INT = ecap2_isr;
+    PieVectTable.ECAP3_INT = ecap3_isr;
     EDIS;
     IER |= M_INT4;
 
     PieCtrlRegs.PIEIER4.bit.INTx1 = 1; // enable ECAP1 PIE Interrupt
+    PieCtrlRegs.PIEIER4.bit.INTx2 = 1;
+    PieCtrlRegs.PIEIER4.bit.INTx3 = 1;
 
     // 2. configure eCAP
     ECap1Regs.ECEINT.all = 0x0000; // Disable All ECAP Interrupt
@@ -118,7 +136,7 @@ int main(void)
     ECap1Regs.ECCTL1.bit.CAP2POL = 1;
     ECap1Regs.ECCTL1.bit.CAP3POL = 1;
     ECap1Regs.ECCTL1.bit.CAP4POL = 1;
-    ECap1Regs.ECCTL1.bit.CTRRST1 = 1; // reset counter when the event happens
+    ECap1Regs.ECCTL1.bit.CTRRST1 = 0; // NO reset counter when the event happens
     ECap1Regs.ECCTL1.bit.CTRRST2 = 1;
     ECap1Regs.ECCTL1.bit.CTRRST3 = 1;
     ECap1Regs.ECCTL1.bit.CTRRST4 = 1;
@@ -133,7 +151,64 @@ int main(void)
 
     ECap1Regs.ECCTL2.bit.REARM = 1;
 
-    ECap1Regs.ECEINT.bit.CEVT1 = 1; // only allow CEVT 4. 1 interrupt = 4 events
+    ECap1Regs.ECEINT.bit.CEVT1 = 1;
+
+    //////////////////
+    ECap2Regs.ECEINT.all = 0x0000; // Disable All ECAP Interrupt
+    ECap2Regs.ECCLR.all = 0xFFFF; // clear All ECAP interrupt flag
+    ECap2Regs.ECCTL1.bit.CAPLDEN = 0;       // Disable CAP1-CAP4 register loads
+    ECap2Regs.ECCTL2.bit.TSCTRSTOP = 0;     // Make sure the counter is stopped
+
+    ECap2Regs.ECCTL1.bit.PRESCALE = 0; // ECAP input signal bypasses prescaler
+    ECap2Regs.ECCTL1.bit.CAP1POL = 0; // FALLING edge
+    ECap2Regs.ECCTL1.bit.CAP2POL = 1;
+    ECap2Regs.ECCTL1.bit.CAP3POL = 1;
+    ECap2Regs.ECCTL1.bit.CAP4POL = 1;
+    ECap2Regs.ECCTL1.bit.CTRRST1 = 0; // NO reset counter when the event happens
+    ECap2Regs.ECCTL1.bit.CTRRST2 = 1;
+    ECap2Regs.ECCTL1.bit.CTRRST3 = 1;
+    ECap2Regs.ECCTL1.bit.CTRRST4 = 1;
+    ECap2Regs.ECCTL1.bit.CAPLDEN = 1; // save CAP result in register
+    ECap2Regs.ECCTL2.bit.CAP_APWM = 0; // eCAP capture mode
+
+
+    ECap2Regs.ECCTL2.bit.CONT_ONESHT = 0; // CONTINUOUS
+    ECap2Regs.ECCTL2.bit.SYNCO_SEL = 0; // pass the syncInput to syncOutput
+    ECap2Regs.ECCTL2.bit.SYNCI_EN = 0; // Disable SyncIn. because In this example, there is no co-operation with other eCAP
+    ECap2Regs.ECCTL2.bit.TSCTRSTOP = 1; // start eCAP_RUN;
+
+    ECap2Regs.ECCTL2.bit.REARM = 1;
+
+    ECap2Regs.ECEINT.bit.CEVT1 = 1;
+
+
+    ////////////////////
+    ECap3Regs.ECEINT.all = 0x0000; // Disable All ECAP Interrupt
+    ECap3Regs.ECCLR.all = 0xFFFF; // clear All ECAP interrupt flag
+    ECap3Regs.ECCTL1.bit.CAPLDEN = 0;       // Disable CAP1-CAP4 register loads
+    ECap3Regs.ECCTL2.bit.TSCTRSTOP = 0;     // Make sure the counter is stopped
+
+    ECap3Regs.ECCTL1.bit.PRESCALE = 0; // ECAP input signal bypasses prescaler
+    ECap3Regs.ECCTL1.bit.CAP1POL = 1; // rising edge
+    ECap3Regs.ECCTL1.bit.CAP2POL = 1;
+    ECap3Regs.ECCTL1.bit.CAP3POL = 1;
+    ECap3Regs.ECCTL1.bit.CAP4POL = 1;
+    ECap3Regs.ECCTL1.bit.CTRRST1 = 0; // NO reset counter when the event happens
+    ECap3Regs.ECCTL1.bit.CTRRST2 = 1;
+    ECap3Regs.ECCTL1.bit.CTRRST3 = 1;
+    ECap3Regs.ECCTL1.bit.CTRRST4 = 1;
+    ECap3Regs.ECCTL1.bit.CAPLDEN = 1; // save CAP result in register
+    ECap3Regs.ECCTL2.bit.CAP_APWM = 0; // eCAP capture mode
+
+    ECap3Regs.ECCTL2.bit.CONT_ONESHT = 0; // CONTINUOUS
+    ECap3Regs.ECCTL2.bit.SYNCO_SEL = 0; // pass the syncInput to syncOutput
+    ECap3Regs.ECCTL2.bit.SYNCI_EN = 0; // Disable SyncIn. because In this example, there is no co-operation with other eCAP
+    ECap3Regs.ECCTL2.bit.TSCTRSTOP = 1; // start eCAP_RUN;
+
+    ECap3Regs.ECCTL2.bit.REARM = 1;
+
+    ECap3Regs.ECEINT.bit.CEVT1 = 1;
+
 
     EINT;
     ERTM;
