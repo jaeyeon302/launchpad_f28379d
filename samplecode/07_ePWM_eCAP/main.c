@@ -12,7 +12,7 @@ interrupt void ecap1_isr(void){
     duty[3] = ECap1Regs.CAP4;
 
     ECap1Regs.ECCLR.bit.INT = 1;
-    ECap1Regs.ECCLR.bit.CEVT4 = 1;
+    ECap1Regs.ECCLR.bit.CEVT1 = 1;
     ECap1Regs.ECCTL2.bit.REARM = 1;
 
     PieCtrlRegs.PIEACK.all |= PIEACK_GROUP4;
@@ -132,7 +132,8 @@ int main(void)
     ECap1Regs.ECCTL2.bit.TSCTRSTOP = 1; // start eCAP_RUN;
 
     ECap1Regs.ECCTL2.bit.REARM = 1;
-    ECap1Regs.ECEINT.bit.CEVT4 = 1; // only allow CEVT 4. 1 interrupt = 4 events
+
+    ECap1Regs.ECEINT.bit.CEVT1 = 1; // only allow CEVT 4. 1 interrupt = 4 events
 
     EINT;
     ERTM;
